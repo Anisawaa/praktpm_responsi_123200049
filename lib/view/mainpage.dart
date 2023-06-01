@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:praktpm_responsi_123200049/view/detailpage.dart';
-import '../model/matches_model.dart';
 import '../model/base_network.dart';
+import '../model/detail_matches_model.dart';
+import '../model/matches_model.dart';
+import 'detailpage.dart';
 
 class ApiService {
   Future<List<MatchesModel>> getMatches() async {
@@ -16,15 +17,14 @@ class ApiService {
     return matches;
   }
 
-  Future<MatchesModel?> getMatchDetail(String matchId) async {
+  Future<DetailMatchesModel?> getMatchDetail(String matchId) async {
     final response = await BaseNetwork.get('matches/$matchId');
     if (response.isNotEmpty) {
-      return MatchesModel.fromJson(response);
+      return DetailMatchesModel.fromJson(response);
     }
     return null;
   }
 }
-
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -43,8 +43,8 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _fetchMatches() async {
-    ApiService apiService = ApiService();
-    List<MatchesModel> fetchedMatches = await apiService.getMatches();
+    // Fetch matches from API
+    List<MatchesModel> fetchedMatches = await ApiService().getMatches();
 
     setState(() {
       matches = fetchedMatches;
@@ -61,45 +61,71 @@ class _MainPageState extends State<MainPage> {
         child: ListView.builder(
           itemCount: matches.length,
           itemBuilder: (context, index) {
+            String homeCode = matches[index].homeTeam?.country ?? '';
+            String homeIso = homeCode.substring(0, 2).toLowerCase();
+            String awayCode = matches[index].awayTeam?.country ?? '';
+            String awayIso = awayCode.substring(0, 2).toLowerCase();
+
             return ListTile(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              title: Column(
                 children: [
-                  Text('${matches[index].homeTeam?.name}'),
-                  Text("      "),
-                  Text('${matches[index].awayTeam?.name}'),
-                ],
-              ),
-              subtitle: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Text('${matches[index].homeTeam?.goals}'),
-                  Text("-"),
-                  Text('${matches[index].awayTeam?.goals}'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Container(
+                        height: 150,
+                        width: 200,
+                        child: Image.network(
+                          'https://flagcdn.com/w320/$homeIso.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Text("-"),
+                      Container(
+                        height: 150,
+                        width: 200,
+                        child: Image.network(
+                          'https://flagcdn.com/w320/$awayIso.png',
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Text('${matches[index].homeTeam?.name}'),
+                      Text("      "),
+                      Text('${matches[index].awayTeam?.name}'),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Text('${matches[index].homeTeam?.goals}'),
+                      Text("      "),
+                      Text('${matches[index].awayTeam?.goals}'),
+                    ],
+                  ),
                 ],
               ),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DetailPage(match: matches[index]),
-                  ),
-                );
+                ApiService().getMatchDetail(matches[index].id as String).then((match) {
+                  if (match != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetailPage(detail: match),
+                      ),
+                    );
+                  }
+                });
               },
             );
           },
         ),
-      )
+      ),
     );
   }
 }
-
-// Widget _buildListWorldCup() {
-//
-//   return Container(
-//     child: ListView.builder(
-//       itemCount: matches.length,
-//       itemBuilder: itemBuilder
-//     ),
-//   );
-// }
